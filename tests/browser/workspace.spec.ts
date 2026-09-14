@@ -50,7 +50,7 @@ test("a person can create, pause, record and export real persisted project work"
   expect((await download).suggestedFilename()).toMatch(/^praja-/);
   await page.reload();
   await page.getByLabel("Select project").selectOption({ label: name });
-  await page.getByRole("button", { name: "Knowledge", exact: true }).click();
+  await page.getByRole("button", { name: /^Knowledge/ }).click();
   await expect(
     page.getByRole("button", { name: /scope Save a field note/ }),
   ).toBeVisible();

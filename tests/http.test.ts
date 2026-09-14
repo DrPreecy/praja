@@ -34,4 +34,16 @@ describe("request body handling", () => {
     });
     await expect(body(request)).rejects.toThrow("Cross-origin");
   });
+
+  it("rejects oversized requests from content-length before buffering", async () => {
+    const request = new Request("http://127.0.0.1:3000/api/projects", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "content-length": "100001",
+      },
+      body: JSON.stringify({ ok: true }),
+    });
+    await expect(body(request)).rejects.toThrow("too large");
+  });
 });

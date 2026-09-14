@@ -188,8 +188,8 @@ export default function WorkspaceApp() {
         <div className="sidebar-bottom">
           <div className="small-dot" /> Human-led. AI-supported.
           <p>Your thinking, made durable.</p>
-          <a href="/api/auth/signin">
-            GitHub account <ArrowUpRight size={13} />
+          <a aria-label="Sign in with GitHub" href="/api/auth/signin">
+            Sign in with GitHub <ArrowUpRight size={13} />
           </a>
         </div>
       </aside>
