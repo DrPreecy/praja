@@ -46,4 +46,13 @@ describe("request body handling", () => {
     });
     await expect(body(request)).rejects.toThrow("too large");
   });
+
+  it("rejects oversized multibyte payloads after reading", async () => {
+    const request = new Request("http://127.0.0.1:3000/api/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: "😀".repeat(30000) }),
+    });
+    await expect(body(request)).rejects.toThrow("too large");
+  });
 });

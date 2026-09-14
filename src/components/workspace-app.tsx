@@ -72,7 +72,9 @@ export default function WorkspaceApp() {
     [context, setContext] = useState<string[]>([]),
     [dep, setDep] = useState(""),
     [up, setUp] = useState(""),
-    [linkReason, setLinkReason] = useState("");
+    [linkReason, setLinkReason] = useState(""),
+    [retiringLinkId, setRetiringLinkId] = useState(""),
+    [retireReason, setRetireReason] = useState("");
   async function run(fn: () => Promise<void>) {
     setBusy(true);
     setError("");
@@ -984,34 +986,67 @@ export default function WorkspaceApp() {
                     <button disabled={busy}>Confirm relationship</button>
                   </form>
                   {w.links.map((l) => (
-                    <p className="relationship" key={l.id}>
+                    <div className="relationship" key={l.id}>
                       {recordName(l.dependent)} → {recordName(l.upstream)}
                       <small>
                         {l.rationale}
                         {l.retiredAt ? (
                           ` · Retired: ${l.retiredReason}`
                         ) : (
-                          <button
-                            className="quiet"
-                            onClick={() => {
-                              const reason = window.prompt(
-                                "Why is this relationship no longer applicable?",
-                              );
-                              if (reason?.trim())
-                                run(async () => {
-                                  await command({
-                                    kind: "retireLink",
-                                    id: l.id,
-                                    reason,
+                          <>
+                            <button
+                              className="quiet"
+                              onClick={() => {
+                                setRetiringLinkId(l.id);
+                                setRetireReason("");
+                              }}
+                            >
+                              Retire relationship
+                            </button>
+                            {retiringLinkId === l.id && (
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  run(async () => {
+                                    await command({
+                                      kind: "retireLink",
+                                      id: l.id,
+                                      reason: retireReason,
+                                    });
+                                    setRetiringLinkId("");
+                                    setRetireReason("");
                                   });
-                                });
-                            }}
-                          >
-                            Retire relationship
-                          </button>
+                                }}
+                              >
+                                <label>
+                                  Why is this relationship no longer applicable?
+                                  <input
+                                    required
+                                    value={retireReason}
+                                    onChange={(e) =>
+                                      setRetireReason(e.target.value)
+                                    }
+                                  />
+                                </label>
+                                <div>
+                                  <button disabled={busy}>Confirm retire</button>
+                                  <button
+                                    className="quiet"
+                                    type="button"
+                                    onClick={() => {
+                                      setRetiringLinkId("");
+                                      setRetireReason("");
+                                    }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </form>
+                            )}
+                          </>
                         )}
                       </small>
-                    </p>
+                    </div>
                   ))}
                 </section>
               )}

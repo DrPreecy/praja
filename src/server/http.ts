@@ -1,7 +1,8 @@
 import { ZodError } from "zod";
 import { DomainError } from "../domain/model";
 
-const maxBodyLength = 100000;
+const maxBodyBytes = 100000;
+const encoder = new TextEncoder();
 
 export async function body(request: Request) {
   const origin = request.headers.get("origin");
@@ -12,10 +13,10 @@ export async function body(request: Request) {
     : `${url.protocol}//${request.headers.get("host") ?? url.host}`;
   if (origin && origin !== expectedOrigin)
     throw new DomainError("Cross-origin changes are not allowed.", 403);
-  if (contentLength && Number(contentLength) > maxBodyLength)
+  if (contentLength && Number.parseInt(contentLength, 10) > maxBodyBytes)
     throw new DomainError("Request is too large.", 413);
   const value = await request.text();
-  if (value.length > maxBodyLength)
+  if (encoder.encode(value).length > maxBodyBytes)
     throw new DomainError("Request is too large.", 413);
   return JSON.parse(value);
 }
