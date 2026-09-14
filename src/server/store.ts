@@ -108,11 +108,11 @@ export async function mutateProject(
   fn: (w: Workspace) => void,
 ) {
   return transaction(async (db) => {
+    const selectProjectForUpdate = localMode()
+      ? "SELECT state FROM projects WHERE id=$1 AND owner=$2"
+      : "SELECT state FROM projects WHERE id=$1 AND owner=$2 FOR UPDATE";
     const row = (
-      await db.query(
-        "SELECT state FROM projects WHERE id=$1 AND owner=$2 FOR UPDATE",
-        [id, owner],
-      )
+      await db.query(selectProjectForUpdate, [id, owner])
     ).rows[0];
     if (!row) throw new DomainError("Project not found.", 404);
     const w = row.state as Workspace;

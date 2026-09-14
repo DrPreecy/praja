@@ -91,15 +91,23 @@ export async function POST(r: Request, p: { params: Promise<{ id: string }> }) {
           502,
         );
     return Response.json(
-      await mutateProject(owner, id, (state) =>
+      await mutateProject(owner, id, (state) => {
+        const currentSelection = state.records.filter((record) =>
+          input.recordIds.includes(record.id),
+        );
+        if (currentSelection.length !== input.recordIds.length)
+          throw new DomainError("Some context records are missing.");
         appendProposal(state, owner, {
           ...candidate,
           baseKnowledgeVersion: w.project.knowledgeVersion,
           source: input.prompt,
           model,
-          context: selected.map((r) => ({ id: r.id, revision: current(r).id })),
-        }),
-      ),
+          context: currentSelection.map((record) => ({
+            id: record.id,
+            revision: current(record).id,
+          })),
+        });
+      }),
     );
   } catch (e) {
     return failure(e);
