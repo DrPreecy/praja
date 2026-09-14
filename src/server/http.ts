@@ -6,7 +6,7 @@ export async function body(request: Request) {
   const expectedOrigin = process.env.NEXTAUTH_URL
     ? new URL(process.env.NEXTAUTH_URL).origin
     : `${url.protocol}//${request.headers.get("host") ?? url.host}`;
-  if (origin !== expectedOrigin)
+  if (origin && origin !== expectedOrigin)
     throw new DomainError("Cross-origin changes are not allowed.", 403);
   const value = await request.text();
   if (value.length > 100000)

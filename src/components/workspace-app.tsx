@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
@@ -139,10 +140,10 @@ export default function WorkspaceApp() {
   return (
     <div className="shell">
       <aside className="sidebar">
-        <a className="brand" href="/">
+        <Link className="brand" href="/">
           <span className="brand-icon">p</span>praja
           <span className="alpha">PREVIEW</span>
-        </a>
+        </Link>
         <div className="project-label">YOUR WORKSPACE</div>
         <select
           aria-label="Select project"

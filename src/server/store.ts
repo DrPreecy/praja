@@ -119,8 +119,8 @@ export async function mutateProject(
     authorize(w, owner);
     fn(w);
     await db.query(
-      "UPDATE projects SET state=$1,updated_at=now() WHERE id=$2",
-      [JSON.stringify(w), id],
+      "UPDATE projects SET state=$1,updated_at=now() WHERE id=$2 AND owner=$3",
+      [JSON.stringify(w), id, owner],
     );
     return w;
   });
