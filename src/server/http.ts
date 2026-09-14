@@ -16,6 +16,7 @@ export async function body(request: Request) {
   if (contentLength && Number.parseInt(contentLength, 10) > maxBodyBytes)
     throw new DomainError("Request is too large.", 413);
   const value = await request.text();
+  if (!value.trim()) throw new DomainError("Request body is required.");
   if (encoder.encode(value).length > maxBodyBytes)
     throw new DomainError("Request is too large.", 413);
   return JSON.parse(value);

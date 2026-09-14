@@ -99,7 +99,7 @@ export async function POST(r: Request, p: { params: Promise<{ id: string }> }) {
           throw new DomainError("Some context records are missing.");
         appendProposal(state, owner, {
           ...candidate,
-          baseKnowledgeVersion: w.project.knowledgeVersion,
+          baseKnowledgeVersion: state.project.knowledgeVersion,
           source: input.prompt,
           model,
           context: currentSelection.map((record) => ({

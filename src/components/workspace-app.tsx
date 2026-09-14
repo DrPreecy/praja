@@ -124,10 +124,10 @@ export default function WorkspaceApp() {
         notices: w.notices.filter((n) => n.status === "open").length,
       }
     : null;
-  const recordName = (id: string) =>
-    w?.records.find((r) => r.id === id)
-      ? current(w.records.find((r) => r.id === id)!).title
-      : "Unknown record";
+  const recordName = (id: string) => {
+    const record = w?.records.find((r) => r.id === id);
+    return record ? current(record).title : "Unknown record";
+  };
   function download(a: Workspace["artifacts"][number]) {
     const blob = new Blob([a.markdown + `\n<!-- sha256: ${a.digest} -->\n`], {
       type: "text/markdown",

@@ -55,4 +55,13 @@ describe("request body handling", () => {
     });
     await expect(body(request)).rejects.toThrow("too large");
   });
+
+  it("rejects an empty request body with a clear error", async () => {
+    const request = new Request("http://127.0.0.1:3000/api/projects", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: "   ",
+    });
+    await expect(body(request)).rejects.toThrow("body is required");
+  });
 });
