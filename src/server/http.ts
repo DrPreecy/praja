@@ -1,8 +1,23 @@
 import { ZodError } from "zod";
 import { DomainError } from "../domain/model";
+import { localMode } from "./store";
 
 const maxBodyBytes = 100000;
 const encoder = new TextEncoder();
+const loopbackHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+function sameOrigin(actual: string, expected: string, allowLoopbackAlias: boolean) {
+  if (actual === expected) return true;
+  if (!allowLoopbackAlias) return false;
+  const a = new URL(actual);
+  const b = new URL(expected);
+  return (
+    a.protocol === b.protocol &&
+    a.port === b.port &&
+    loopbackHosts.has(a.hostname) &&
+    loopbackHosts.has(b.hostname)
+  );
+}
 
 export async function body(request: Request) {
   const origin = request.headers.get("origin");
@@ -11,9 +26,18 @@ export async function body(request: Request) {
   const url = new URL(request.url);
   const expectedOrigin = process.env.NEXTAUTH_URL
     ? new URL(process.env.NEXTAUTH_URL).origin
-    : `${url.protocol}//${request.headers.get("host") ?? url.host}`;
-  if (!["GET", "HEAD", "OPTIONS"].includes(method) && origin && origin !== expectedOrigin)
-    throw new DomainError("Cross-origin changes are not allowed.", 403);
+    : localMode()
+      ? url.origin
+      : null;
+  if (!["GET", "HEAD", "OPTIONS"].includes(method) && origin) {
+    if (!expectedOrigin)
+      throw new DomainError(
+        "Configure NEXTAUTH_URL before accepting browser writes.",
+        503,
+      );
+    if (!sameOrigin(origin, expectedOrigin, localMode()))
+      throw new DomainError("Cross-origin changes are not allowed.", 403);
+  }
   if (contentLength) {
     const declaredBytes = Number.parseInt(contentLength, 10);
     if (!Number.isFinite(declaredBytes) || declaredBytes < 0)

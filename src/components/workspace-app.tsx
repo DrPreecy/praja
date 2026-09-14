@@ -61,7 +61,7 @@ async function api(path: string, data?: unknown) {
   if (!r.ok) throw new Error(v.error ?? "Request failed");
   return v;
 }
-export default function WorkspaceApp() {
+export default function WorkspaceApp({ localDev = false }: { localDev?: boolean }) {
   const [projects, setProjects] = useState<Project[]>([]),
     [w, setW] = useState<Workspace | null>(null),
     [page, setPage] = useState("Overview"),
@@ -201,9 +201,13 @@ export default function WorkspaceApp() {
         <div className="sidebar-bottom">
           <div className="small-dot" /> Human-led. AI-supported.
           <p>Your thinking, made durable.</p>
-          <a aria-label="Sign in with GitHub" href="/api/auth/signin">
-            Sign in with GitHub <ArrowUpRight size={13} />
-          </a>
+          {localDev ? (
+            <p>Local development mode uses the built-in developer identity.</p>
+          ) : (
+            <a aria-label="Sign in with GitHub" href="/api/auth/signin">
+              Sign in with GitHub <ArrowUpRight size={13} />
+            </a>
+          )}
         </div>
       </aside>
       <main>

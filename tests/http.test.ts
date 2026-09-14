@@ -3,7 +3,7 @@ import { body } from "../src/server/http";
 
 describe("request body handling", () => {
   it("accepts same-origin browser writes", async () => {
-    const request = new Request("http://127.0.0.1:3000/api/projects", {
+    const request = new Request("http://localhost:3000/api/projects", {
       method: "POST",
       headers: {
         origin: "http://127.0.0.1:3000",
