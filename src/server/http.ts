@@ -13,8 +13,13 @@ export async function body(request: Request) {
     : `${url.protocol}//${request.headers.get("host") ?? url.host}`;
   if (origin && origin !== expectedOrigin)
     throw new DomainError("Cross-origin changes are not allowed.", 403);
-  if (contentLength && Number.parseInt(contentLength, 10) > maxBodyBytes)
-    throw new DomainError("Request is too large.", 413);
+  if (contentLength) {
+    const declaredBytes = Number.parseInt(contentLength, 10);
+    if (!Number.isFinite(declaredBytes) || declaredBytes < 0)
+      throw new DomainError("Content-Length header is invalid.");
+    if (declaredBytes > maxBodyBytes)
+      throw new DomainError("Request is too large.", 413);
+  }
   const value = await request.text();
   if (!value.trim()) throw new DomainError("Request body is required.");
   if (encoder.encode(value).length > maxBodyBytes)

@@ -35,6 +35,17 @@ const blank: RecordInput = {
   exclusions: "",
   source: "",
 };
+const snapshotRecord = (record: RecordInput): RecordInput => ({
+  kind: record.kind,
+  title: record.title,
+  body: record.body,
+  status: record.status,
+  rationale: record.rationale,
+  evidence: record.evidence,
+  criteria: record.criteria,
+  exclusions: record.exclusions,
+  source: record.source,
+});
 async function api(path: string, data?: unknown) {
   const r = await fetch(
     path,
@@ -751,28 +762,19 @@ export default function WorkspaceApp() {
                     onSubmit={(e) => {
                       e.preventDefault();
                       run(async () => {
+                        const record = snapshotRecord(draft);
                         await command(
                           editing
                             ? {
                                 kind: "reviseRecord",
                                 id: editing.id,
                                 expectedRevision: current(editing).id,
-                                record: Object.fromEntries(
-                                  Object.keys(blank).map((key) => [
-                                    key,
-                                    draft[key as keyof RecordInput],
-                                  ]),
-                                ),
+                                record,
                                 reason,
                               }
                             : {
                                 kind: "createRecord",
-                                record: Object.fromEntries(
-                                  Object.keys(blank).map((key) => [
-                                    key,
-                                    draft[key as keyof RecordInput],
-                                  ]),
-                                ),
+                                record,
                               },
                         );
                         setShowRecord(false);

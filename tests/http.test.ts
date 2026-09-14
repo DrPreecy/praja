@@ -47,6 +47,18 @@ describe("request body handling", () => {
     await expect(body(request)).rejects.toThrow("too large");
   });
 
+  it("rejects invalid content-length headers before buffering", async () => {
+    const request = new Request("http://127.0.0.1:3000/api/projects", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "content-length": "-1",
+      },
+      body: JSON.stringify({ ok: true }),
+    });
+    await expect(body(request)).rejects.toThrow("Content-Length");
+  });
+
   it("rejects oversized multibyte payloads after reading", async () => {
     const request = new Request("http://127.0.0.1:3000/api/projects", {
       method: "POST",
