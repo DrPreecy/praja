@@ -7,11 +7,12 @@ const encoder = new TextEncoder();
 export async function body(request: Request) {
   const origin = request.headers.get("origin");
   const contentLength = request.headers.get("content-length");
+  const method = request.method.toUpperCase();
   const url = new URL(request.url);
   const expectedOrigin = process.env.NEXTAUTH_URL
     ? new URL(process.env.NEXTAUTH_URL).origin
     : `${url.protocol}//${request.headers.get("host") ?? url.host}`;
-  if (origin && origin !== expectedOrigin)
+  if (!["GET", "HEAD", "OPTIONS"].includes(method) && origin && origin !== expectedOrigin)
     throw new DomainError("Cross-origin changes are not allowed.", 403);
   if (contentLength) {
     const declaredBytes = Number.parseInt(contentLength, 10);

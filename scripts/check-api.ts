@@ -60,6 +60,8 @@ try {
     await new Promise((r) => setTimeout(r, 1000));
   }
   assert(ready, logs);
+  const crossOriginRead = await request("/api/projects", undefined, "https://docs.example");
+  assert.equal(crossOriginRead.status, 200);
   const created = await request("/api/projects", {
     name: "HTTP integration " + Date.now(),
     description: "Persistence contract test",

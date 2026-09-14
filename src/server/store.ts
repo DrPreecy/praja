@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import { PGlite } from "@electric-sql/pglite";
-import { mkdir } from "node:fs/promises";
+import { mkdir, open, readFile, rm, type FileHandle } from "node:fs/promises";
 import { authorize, emptyWorkspace } from "../domain/workspace";
 import { DomainError, type Workspace } from "../domain/model";
 
@@ -11,13 +11,75 @@ const globalDb = globalThis as unknown as {
   prajaPool?: Pool;
   prajaLocal?: Promise<PGlite>;
   prajaQueue?: Promise<unknown>;
+  prajaLocalLock?: Promise<FileHandle>;
+  prajaLocalLockRegistered?: boolean;
 };
 export const localMode = () =>
   process.env.PRAJA_LOCAL_DEV === "1" && process.env.NODE_ENV !== "production";
 const schema = `CREATE TABLE IF NOT EXISTS projects (id uuid PRIMARY KEY, owner text NOT NULL, state jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now()); CREATE INDEX IF NOT EXISTS projects_owner ON projects(owner);`;
+async function localLock() {
+  if (!globalDb.prajaLocalLock)
+    globalDb.prajaLocalLock = (async () => {
+      await mkdir(".local-data", { recursive: true });
+      const path = ".local-data/dev-server.lock";
+      const acquire = async (retry = true): Promise<FileHandle> => {
+        try {
+          const handle = await open(path, "wx");
+          await handle.writeFile(String(process.pid));
+          return handle;
+        } catch {
+          if (!retry)
+            throw new DomainError(
+              "Local development storage is already locked by another Praja process. Stop the other local server before using PRAJA_LOCAL_DEV.",
+              503,
+            );
+          try {
+            const value = (await readFile(path, "utf8")).trim();
+            const pid = Number.parseInt(value, 10);
+            if (!Number.isFinite(pid) || pid <= 0) {
+              await rm(path);
+              return acquire(false);
+            }
+            process.kill(pid, 0);
+          } catch {
+            await rm(path, { force: true });
+            return acquire(false);
+          }
+          throw new DomainError(
+            "Local development storage is already locked by another Praja process. Stop the other local server before using PRAJA_LOCAL_DEV.",
+            503,
+          );
+        }
+      };
+      const handle = await acquire();
+        if (!globalDb.prajaLocalLockRegistered) {
+          globalDb.prajaLocalLockRegistered = true;
+          const release = async () => {
+            try {
+              await handle.close();
+            } catch {}
+            try {
+              await rm(".local-data/dev-server.lock");
+            } catch {}
+          };
+          process.once("exit", () => {
+            void release();
+          });
+          process.once("SIGINT", () => {
+            void release().finally(() => process.exit(130));
+          });
+          process.once("SIGTERM", () => {
+            void release().finally(() => process.exit(143));
+          });
+        }
+      return handle;
+    })();
+  return globalDb.prajaLocalLock;
+}
 async function local() {
   if (!globalDb.prajaLocal)
     globalDb.prajaLocal = (async () => {
+      await localLock();
       await mkdir(".local-data", { recursive: true });
       const db = new PGlite(".local-data/db");
       await db.exec(schema);

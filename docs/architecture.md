@@ -10,7 +10,7 @@ PostgreSQL stores one versioned JSONB workspace per project, indexed by owner. A
 
 This intentionally replaces a normalized record-table proposal for the initial preview. It makes atomic project operations simple but rewrites the aggregate and loads all project history. It is appropriate only for small, single-owner projects. Large projects need measured size limits, pagination and normalized record/revision storage before expansion. No graph database or full event sourcing is introduced.
 
-Development uses PGlite with a process-local serial transaction queue. Production uses a PostgreSQL connection pool and row locks. Never run multiple processes against the same embedded development directory.
+Development uses PGlite with a process-local serial transaction queue plus a local lock file that fails fast if another Praja process is already using the same embedded database directory. Production uses a PostgreSQL connection pool and row locks. Never run multiple processes against the same embedded development directory.
 
 ## Knowledge model
 
