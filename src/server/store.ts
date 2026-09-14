@@ -16,7 +16,11 @@ const globalDb = globalThis as unknown as {
 };
 export const localMode = () =>
   process.env.PRAJA_LOCAL_DEV === "1" && process.env.NODE_ENV !== "production";
-const schema = `CREATE TABLE IF NOT EXISTS projects (id uuid PRIMARY KEY, owner text NOT NULL, state jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now()); CREATE INDEX IF NOT EXISTS projects_owner ON projects(owner);`;
+const statements = [
+  "CREATE TABLE IF NOT EXISTS projects (id uuid PRIMARY KEY, owner text NOT NULL, state jsonb NOT NULL, updated_at timestamptz NOT NULL DEFAULT now())",
+  "CREATE INDEX IF NOT EXISTS projects_owner ON projects(owner)",
+];
+const schema = statements.map((statement) => `${statement};`).join(" ");
 async function localLock() {
   if (!globalDb.prajaLocalLock)
     globalDb.prajaLocalLock = (async () => {
@@ -52,26 +56,26 @@ async function localLock() {
         }
       };
       const handle = await acquire();
-        if (!globalDb.prajaLocalLockRegistered) {
-          globalDb.prajaLocalLockRegistered = true;
-          const release = async () => {
-            try {
-              await handle.close();
-            } catch {}
-            try {
-              await rm(".local-data/dev-server.lock");
-            } catch {}
-          };
-          process.once("exit", () => {
-            void release();
-          });
-          process.once("SIGINT", () => {
-            void release().finally(() => process.exit(130));
-          });
-          process.once("SIGTERM", () => {
-            void release().finally(() => process.exit(143));
-          });
-        }
+      if (!globalDb.prajaLocalLockRegistered) {
+        globalDb.prajaLocalLockRegistered = true;
+        const release = async () => {
+          try {
+            await handle.close();
+          } catch {}
+          try {
+            await rm(".local-data/dev-server.lock");
+          } catch {}
+        };
+        process.once("exit", () => {
+          void release();
+        });
+        process.once("SIGINT", () => {
+          void release().finally(() => process.exit(130));
+        });
+        process.once("SIGTERM", () => {
+          void release().finally(() => process.exit(143));
+        });
+      }
       return handle;
     })();
   return globalDb.prajaLocalLock;
@@ -124,7 +128,7 @@ export async function transaction<T>(
 }
 export async function migrate() {
   await transaction(async (db) => {
-    await db.query(schema);
+    for (const statement of statements) await db.query(statement);
   });
 }
 export async function listProjects(owner: string) {

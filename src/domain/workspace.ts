@@ -137,7 +137,9 @@ export function apply(w: Workspace, actor: string, cmd: Command): Workspace {
       transition(prev, cmd.record);
       if (
         cmd.record.kind === "scope" &&
-        ["ready", "active", "accepted"].includes(cmd.record.status) &&
+        ["ready", "active", "in_review", "accepted"].includes(
+          cmd.record.status,
+        ) &&
         w.notices.some((n) => n.recordId === r.id && n.status === "open")
       )
         throw new DomainError(

@@ -21,7 +21,11 @@ test("a person can create, pause, record and export real persisted project work"
     .getByLabel("Your working notes")
     .fill("Will researchers need offline access?");
   await page.getByRole("button", { name: "Save & pause" }).click();
-  await expect(page.getByText("Saving / working…")).not.toBeVisible();
+  await expect(
+    page.getByLabel("Resume a session").locator("option", {
+      hasText: "Offline questions",
+    }),
+  ).toHaveCount(1);
   await page.getByRole("button", { name: "Make a record" }).click();
   await page
     .getByLabel("Title", { exact: true })

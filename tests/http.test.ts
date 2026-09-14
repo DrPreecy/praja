@@ -1,8 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { body } from "../src/server/http";
+
+afterEach(() => vi.unstubAllEnvs());
 
 describe("request body handling", () => {
   it("accepts same-origin browser writes", async () => {
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("PRAJA_LOCAL_DEV", "1");
+    vi.stubEnv("NEXTAUTH_URL", "http://localhost:3000");
     const request = new Request("http://localhost:3000/api/projects", {
       method: "POST",
       headers: {

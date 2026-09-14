@@ -36,7 +36,7 @@ describe("human-led project contracts", () => {
   it("rejects stale writes and preserves original revision", () => {
     const w = make(),
       r = add(w),
-      v = current(r);
+      v = structuredClone(current(r));
     expect(() =>
       apply(w, "alice", { kind: "createRecord", version: 0, record: input() }),
     ).toThrow("changed");

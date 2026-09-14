@@ -28,6 +28,8 @@ export async function POST(r: Request, p: { params: Promise<{ id: string }> }) {
       id: r.id,
       revision: current(r).id,
     }));
+    const baseKnowledgeVersion = w.project.knowledgeVersion;
+    const baseContext = context.map(({ id, revision }) => ({ id, revision }));
     const serialized = JSON.stringify(context);
     if (serialized.length > 30000)
       throw new DomainError(
@@ -73,10 +75,26 @@ export async function POST(r: Request, p: { params: Promise<{ id: string }> }) {
         "The AI provider rejected the request. No project knowledge was changed.",
         502,
       );
-    const output = await response.json();
-    const candidate = candidateSchema.parse(
-      JSON.parse(output.choices?.[0]?.message?.content ?? ""),
-    );
+    let candidate: z.infer<typeof candidateSchema>;
+    try {
+      const output = await response.json();
+      if (!output || typeof output !== "object")
+        throw new TypeError("Unusable provider response.");
+      const content = (
+        output as {
+          choices?: Array<{ message?: { content?: unknown } }>;
+        }
+      ).choices?.[0]?.message?.content;
+      if (typeof content !== "string" || !content.trim())
+        throw new TypeError("Unusable provider response.");
+      candidate = candidateSchema.parse(JSON.parse(content));
+    } catch (e) {
+      if (e instanceof DomainError) throw e;
+      throw new DomainError(
+        "The AI provider returned an invalid response. No project knowledge was changed.",
+        502,
+      );
+    }
     const initial: Record<string, string> = {
       question: "open",
       claim: "assumed",
@@ -92,20 +110,27 @@ export async function POST(r: Request, p: { params: Promise<{ id: string }> }) {
         );
     return Response.json(
       await mutateProject(owner, id, (state) => {
-        const currentSelection = state.records.filter((record) =>
-          input.recordIds.includes(record.id),
-        );
-        if (currentSelection.length !== input.recordIds.length)
-          throw new DomainError("Some context records are missing.");
+        if (state.project.knowledgeVersion !== baseKnowledgeVersion)
+          throw new DomainError(
+            "Project knowledge changed during generation. Nothing was applied.",
+            409,
+          );
+        for (const { id: recordId, revision } of baseContext) {
+          const record = state.records.find((entry) => entry.id === recordId);
+          if (!record)
+            throw new DomainError("Some context records are missing.");
+          if (current(record).id !== revision)
+            throw new DomainError(
+              "Project knowledge changed during generation. Nothing was applied.",
+              409,
+            );
+        }
         appendProposal(state, owner, {
           ...candidate,
-          baseKnowledgeVersion: state.project.knowledgeVersion,
+          baseKnowledgeVersion,
           source: input.prompt,
           model,
-          context: currentSelection.map((record) => ({
-            id: record.id,
-            revision: current(record).id,
-          })),
+          context: baseContext,
         });
       }),
     );
